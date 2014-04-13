@@ -1,4 +1,4 @@
-package Huego
+package huego
 
 import (
 	"bytes"
@@ -61,16 +61,17 @@ func (l *Light) setStateInternal(transitionTime int32) string {
 	var buffer bytes.Buffer
 	fieldsUpdated := false
 
+	buffer.WriteString("{")
 	if l.State.On != l.prevState.On {
 		l.writeUpdateParam(&buffer, "on", boolToString(l.State.On), fieldsUpdated)
 		fieldsUpdated = true
 	}
 	if l.State.Bri != l.prevState.Bri {
-		l.writeUpdateParam(&buffer, "bri", string(l.State.Bri), fieldsUpdated)
+		l.writeUpdateParam(&buffer, "bri", fmt.Sprintf("%v", l.State.Bri), fieldsUpdated)
 		fieldsUpdated = true
 	}
 	if l.State.Hue != l.prevState.Hue {
-		l.writeUpdateParam(&buffer, "hue", string(l.State.Hue), fieldsUpdated)
+		l.writeUpdateParam(&buffer, "hue", fmt.Sprintf("%v", l.State.Hue), fieldsUpdated)
 		fieldsUpdated = true
 	}
 	if l.State.X != l.prevState.X || l.State.Y != l.prevState.Y {
@@ -78,7 +79,7 @@ func (l *Light) setStateInternal(transitionTime int32) string {
 		fieldsUpdated = true
 	}
 	if l.State.Ct != l.prevState.Ct {
-		l.writeUpdateParam(&buffer, "ct", string(l.State.Ct), fieldsUpdated)
+		l.writeUpdateParam(&buffer, "ct", fmt.Sprintf("%v", l.State.Ct), fieldsUpdated)
 		fieldsUpdated = true
 	}
 	if l.State.Alert != l.prevState.Alert {
@@ -90,9 +91,11 @@ func (l *Light) setStateInternal(transitionTime int32) string {
 		fieldsUpdated = true
 	}
 	if transitionTime >= 0 {
-		l.writeUpdateParam(&buffer, "transitiontime", string(transitionTime), fieldsUpdated)
+		l.writeUpdateParam(&buffer, "transitiontime", fmt.Sprintf("%v", transitionTime), fieldsUpdated)
 		fieldsUpdated = true
 	}
+	buffer.WriteString("\n}")
+
 	l.ResetState()
 
 	return buffer.String()
@@ -119,6 +122,7 @@ func (l *Light) writeUpdateParam(buffer *bytes.Buffer, p string, val string, inc
 		buffer.WriteString(",")
 	}
 	buffer.WriteString("\n\t\"")
+	buffer.WriteString(p)
 	buffer.WriteString("\": ")
-
+	buffer.WriteString(val)
 }
