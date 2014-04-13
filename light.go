@@ -74,6 +74,10 @@ func (l *Light) setStateInternal(transitionTime int32) string {
 		l.writeUpdateParam(&buffer, "hue", fmt.Sprintf("%v", l.State.Hue), fieldsUpdated)
 		fieldsUpdated = true
 	}
+	if l.State.Sat != l.prevState.Sat {
+		l.writeUpdateParam(&buffer, "sat", fmt.Sprintf("%v", l.State.Sat), fieldsUpdated)
+		fieldsUpdated = true
+	}
 	if l.State.X != l.prevState.X || l.State.Y != l.prevState.Y {
 		l.writeUpdateParam(&buffer, "xy", "["+floatToString(l.State.X)+","+floatToString(l.State.Y)+"]", fieldsUpdated)
 		fieldsUpdated = true
