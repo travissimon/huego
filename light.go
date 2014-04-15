@@ -23,15 +23,21 @@ type Light struct {
 	prevState       *State
 	State           *State
 	Type            string
-	Name            string
+	Name            *string
 	Model           string
 	SoftwareVersion string
 }
 
-func NewLight() *Light {
-	light := new(Light)
-	light.prevState = new(State)
-	light.State = new(State)
+func NewLight() Light {
+	name := ""
+	light := Light{
+		new(State),
+		new(State),
+		"",
+		&name,
+		"",
+		"",
+	}
 	return light
 }
 
