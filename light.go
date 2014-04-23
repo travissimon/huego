@@ -7,39 +7,27 @@ import (
 )
 
 type State struct {
-	On        bool
-	Hue       uint16
-	Bri       uint8
-	Sat       uint8
-	X         float32
-	Y         float32
-	Ct        uint16
-	Alert     string
-	Effect    string
-	Colormode string
-	Reachable bool
+	On        bool      `json:"on"`
+	Hue       uint16    `json:"hue"`
+	Bri       uint8     `json:"bri"`
+	Sat       uint8     `json:"sat"`
+	XY        []float32 `json:"xy"`
+	Ct        uint16    `json:"ct"`
+	Alert     string    `json:"alert"`
+	Effect    string    `json:"effect"`
+	Colormode string    `json:"colormode"`
+	Reachable bool      `json:"reachable"`
 }
 
 type Light struct {
+	Id              string
+	base            *Base
 	prevState       *State
-	State           *State
-	Type            string
-	Name            *string
-	Model           string
-	SoftwareVersion string
-}
-
-func NewLight() Light {
-	name := ""
-	light := Light{
-		new(State),
-		new(State),
-		"",
-		&name,
-		"",
-		"",
-	}
-	return light
+	State           *State `json:"state"`
+	Type            string `json:"type"`
+	Name            string `json:"name"`
+	Model           string `json:"model"`
+	SoftwareVersion string `json:"swversion"`
 }
 
 func (l *Light) ResetState() {
@@ -47,8 +35,16 @@ func (l *Light) ResetState() {
 	l.prevState.Hue = l.State.Hue
 	l.prevState.Bri = l.State.Bri
 	l.prevState.Sat = l.State.Sat
-	l.prevState.X = l.State.X
-	l.prevState.Y = l.State.Y
+	if l.prevState.XY == nil || len(l.prevState.XY) != 2 {
+		l.prevState.XY = make([]float32, 2, 2)
+	}
+	if l.State.XY == nil || len(l.State.XY) != 2 {
+		l.State.XY = make([]float32, 2, 2)
+	}
+	if l.State.XY != nil && len(l.State.XY) == 2 {
+		l.prevState.XY[0] = l.State.XY[0]
+		l.prevState.XY[1] = l.State.XY[1]
+	}
 	l.prevState.Ct = l.State.Ct
 	l.prevState.Alert = l.State.Alert
 	l.prevState.Effect = l.State.Effect
@@ -65,15 +61,15 @@ func (l *Light) GetColourDistance() float64 {
 	return dist
 }
 
-func (l *Light) SetStateWithTransition(transitionTime uint16) string {
-	return l.setStateInternal(int32(transitionTime))
+func (l *Light) SetStateWithTransition(transitionTime uint16) error {
+	return l.setStateInternal(transitionTime)
 }
 
-func (l *Light) SetState() string {
+func (l *Light) SetState() error {
 	return l.setStateInternal(0)
 }
 
-func (l *Light) setStateInternal(transitionTime int32) string {
+func (l *Light) GetUpdateString(transitionTime uint16) string {
 	var buffer bytes.Buffer
 	fieldsUpdated := false
 
@@ -94,9 +90,11 @@ func (l *Light) setStateInternal(transitionTime int32) string {
 		l.writeUpdateParam(&buffer, "sat", fmt.Sprintf("%v", l.State.Sat), fieldsUpdated)
 		fieldsUpdated = true
 	}
-	if l.State.X != l.prevState.X || l.State.Y != l.prevState.Y {
-		l.writeUpdateParam(&buffer, "xy", "["+floatToString(l.State.X)+","+floatToString(l.State.Y)+"]", fieldsUpdated)
-		fieldsUpdated = true
+	if l.State.XY != nil && l.prevState.XY != nil {
+		if l.State.XY[0] != l.prevState.XY[0] || l.State.XY[1] != l.prevState.XY[1] {
+			l.writeUpdateParam(&buffer, "xy", "["+floatToString(l.State.XY[0])+","+floatToString(l.State.XY[1])+"]", fieldsUpdated)
+			fieldsUpdated = true
+		}
 	}
 	if l.State.Ct != l.prevState.Ct {
 		l.writeUpdateParam(&buffer, "ct", fmt.Sprintf("%v", l.State.Ct), fieldsUpdated)
@@ -116,9 +114,21 @@ func (l *Light) setStateInternal(transitionTime int32) string {
 	}
 	buffer.WriteString("\n}")
 
-	l.ResetState()
-
 	return buffer.String()
+}
+
+func (l *Light) setStateInternal(transitionTime uint16) error {
+	updateString := l.GetUpdateString(transitionTime)
+	url := fmt.Sprintf("/lights/%v/state", l.Id)
+	fmt.Printf("Light: %v\n", l)
+	result, err := l.base.doPut(url, updateString)
+	if err != nil {
+		return err
+	}
+	resString := string(result)
+	fmt.Printf("result: %v\n", resString)
+	l.ResetState()
+	return nil
 }
 
 func boolToString(b bool) string {
