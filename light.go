@@ -3,6 +3,7 @@ package huego
 import (
 	"bytes"
 	"fmt"
+	"math"
 )
 
 type State struct {
@@ -55,12 +56,21 @@ func (l *Light) ResetState() {
 	l.prevState.Reachable = l.State.Reachable
 }
 
+// Returns the number of 'edit steps' between old and new hsv colour
+// Used to prioritise bulb changes
+func (l *Light) GetColourDistance() float64 {
+	dist := math.Abs(float64(l.prevState.Hue) - float64(l.State.Hue))
+	dist += math.Abs((float64(l.prevState.Bri) * 360.0) - (float64(l.State.Bri) * 360.0))
+	dist += math.Abs((float64(l.prevState.Sat) * 360.0) - (float64(l.State.Sat) * 360.0))
+	return dist
+}
+
 func (l *Light) SetStateWithTransition(transitionTime uint16) string {
 	return l.setStateInternal(int32(transitionTime))
 }
 
 func (l *Light) SetState() string {
-	return l.setStateInternal(-1)
+	return l.setStateInternal(0)
 }
 
 func (l *Light) setStateInternal(transitionTime int32) string {
