@@ -5,7 +5,7 @@ import (
 )
 
 func TestNothing(t *testing.T) {
-	t.Pass()
+	t.SkipNow()
 }
 
 /*
